@@ -10,6 +10,24 @@ const app = express();
 app.use(bodyParser.json());
 app.use(express.static(`${__dirname}/static`));
 
+// more precise to less precise (Express route exec)
+app.get("/api/games/populate", (req, res) => {
+  // make
+  console.log("ROUTE -> /api/games/populate");
+
+  // 1- make in parallel api call to get top 100 apps
+  // - play store
+  // - apple store
+
+  // axios will be use
+
+  // create games object
+
+  // save
+
+  // return success
+});
+
 app.get("/api/games", (req, res) =>
   db.Game.findAll()
     .then((games) => res.send(games))
@@ -89,16 +107,12 @@ app.put("/api/games/:id", (req, res) => {
 });
 
 app.post("/api/games/search", (req, res) => {
-  console.log("---> route api/games/seach");
-  console.log("----> req", req.body);
-
-  let platformValueAllowed = ["ios, android", "all"];
-
   // control data
-  // search -> string
+  // search name -> string
   // platform ->
   // --- enum (if ts)
   // --- test includes in platformValueAllowed
+  // let platformValueAllowed = ["ios, android", "all"];
 
   // 1 - no search --> return all
   // - normally pagination /!\
