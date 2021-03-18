@@ -1,9 +1,29 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const db = require("./models");
-const Sequelize = require("sequelize");
+const sequelize = require("sequelize");
+const axios = require("axios");
+const Op = sequelize.Op;
 
-const Op = Sequelize.Op;
+// --------------------------------------------- //
+// ------------ CONFIG FOR APPTWEAK ------------ //
+const APPTWEAK_API_TOKEN = "MZ96D4I2PDCLIHU69_z4vgkjRxo";
+const APPTWEAK_BASE_URL = "https://api.apptweak.com";
+let config = {
+  headers: {
+    "X-Apptweak-Key": `${APPTWEAK_API_TOKEN}`,
+  },
+};
+
+// games category
+let IOS_CATEGORY_ID = 6014;
+let ANDROID_CATEGORY_ID = "GAME";
+
+let URI_IOS_TOP_GAMES = `${APPTWEAK_BASE_URL}/ios/categories/${IOS_CATEGORY_ID}/top.json`;
+let URI_ANDROID_TOP_GAMES = `${APPTWEAK_BASE_URL}/android/categories/${ANDROID_CATEGORY_ID}/top.json`;
+
+// --------------------------------------------- //
+// --------------------------------------------- //
 
 const app = express();
 
@@ -11,21 +31,47 @@ app.use(bodyParser.json());
 app.use(express.static(`${__dirname}/static`));
 
 // more precise to less precise (Express route exec)
-app.get("/api/games/populate", (req, res) => {
-  // make
+app.get("/api/games/populate", async (req, res) => {
   console.log("ROUTE -> /api/games/populate");
 
-  // 1- make in parallel api call to get top 100 apps
-  // - play store
-  // - apple store
+  let axiosIOS = axios.get(URI_IOS_TOP_GAMES, config);
+  let axiosANDROID = axios.get(URI_ANDROID_TOP_GAMES, config);
 
-  // axios will be use
+  try {
+    let [promisedAPICallIOS, promisedAPICallAndroid] = await Promise.all([
+      axiosIOS,
+      axiosANDROID,
+    ]);
 
-  // create games object
+    let firstIOSAppElements = promisedAPICallIOS.data.content
+      .slice(0, 50)
+      .map((elem) => ({
+        publisherId: elem.developer,
+        name: elem.title,
+        platform: "ios",
+        storeId: elem.id,
+        bundleId: elem.id,
+        isPublished: true,
+      }));
+    let firstAndroidAppElements = promisedAPICallAndroid.data.content
+      .slice(0, 50)
+      .map((elem) => ({
+        publisherId: elem.id,
+        name: elem.title,
+        platform: "android",
+        storeId: elem.id,
+        bundleId: elem.id,
+        isPublished: true,
+      }));
 
-  // save
+    let topGamesApps = [...firstIOSAppElements, ...firstAndroidAppElements];
 
-  // return success
+    await db.Game.bulkCreate(topGamesApps);
+
+    res.send({status: "OK"});
+  } catch (error) {
+    console.log("--> error axios API call", error);
+  }
 });
 
 app.get("/api/games", (req, res) =>
